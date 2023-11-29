@@ -19,29 +19,30 @@
  *      contact@openairinterface.org
  */
 
-#include "../../../../../src/xApp/e42_xapp_api.h"
-#include "../../../../../src/util/alg_ds/alg/defer.h"
-#include "../../../../../src/util/time_now_us.h"
+#include "../../../../src/xApp/e42_xapp_api.h"
+#include "../../../../src/util/alg_ds/alg/defer.h"
+#include "../../../../src/util/time_now_us.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
 
-static
-void sm_cb_rlc(sm_ag_if_rd_t const* rd)
-{
-  assert(rd != NULL);
-  assert(rd->type == RLC_STATS_V0);
-  int64_t now = time_now_us();
+int ifTerminate = false;
+long long count = 0;
 
-  char result[20000];
-  char temp[20000];
+void terminate(int signum){
+  ifTerminate = true;
+}
 
-  printf("RLC ind_msg latency = %ld \n", now - rd->rlc_stats.msg.tstamp);
-
+void printJsonRlc(sm_ag_if_rd_t const* rd){
   rlc_radio_bearer_stats_t * stats = rd->rlc_stats.msg.rb;
   uint32_t node_number = rd->rlc_stats.msg.len;
+  int64_t now = time_now_us();
+  
+  char result[20000];
+  char temp[20000];
 
   strcat(result,"{\"RLC_bearer\":{");
   sprintf(temp,"\"len\": %u,", node_number );    strcat(result, temp);
@@ -89,12 +90,27 @@ void sm_cb_rlc(sm_ag_if_rd_t const* rd)
   strcat(result,"]}}");
 
   printf("%s \n\n\n",result);
+}
+
+static
+void sm_cb_rlc(sm_ag_if_rd_t const* rd)
+{
+  assert(rd != NULL);
+  assert(rd->type == RLC_STATS_V0);
+  int64_t now = time_now_us();
+
+  printf("RLC ind_msg latency = %ld \n", now - rd->rlc_stats.msg.tstamp);
+  printf("count: %ld",count++);
+  //printJsonRlc(rd);
 
 }
 
 
 int main(int argc, char *argv[])
 {
+
+  signal(SIGINT, terminate);
+
   fr_args_t args = init_fr_args(argc, argv);
   //Init the xApp
   init_xapp_api(&args);
@@ -122,9 +138,10 @@ int main(int argc, char *argv[])
     rlc_handle[i] = report_sm_xapp_api(&nodes.n[i].id, n->ack_rf[1].id, i_1, sm_cb_rlc);
     assert(rlc_handle[i].success == true);
   }
-
-  sleep(1);
-
+  
+  while(!ifTerminate){
+    sleep(1);
+  }
 
   for(int i = 0; i < nodes.len; ++i){
     // Remove the handle previously returned
@@ -140,5 +157,6 @@ int main(int argc, char *argv[])
     usleep(1000);
 
   printf("Test xApp run SUCCESSFULLY\n");
+
 }
 

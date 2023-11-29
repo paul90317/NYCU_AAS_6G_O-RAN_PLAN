@@ -19,29 +19,30 @@
  *      contact@openairinterface.org
  */
 
-#include "../../../../../src/xApp/e42_xapp_api.h"
-#include "../../../../../src/util/alg_ds/alg/defer.h"
-#include "../../../../../src/util/time_now_us.h"
+#include "../../../../src/xApp/e42_xapp_api.h"
+#include "../../../../src/util/alg_ds/alg/defer.h"
+#include "../../../../src/util/time_now_us.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
 
-static
-void sm_cb_pdcp(sm_ag_if_rd_t const* rd)
-{
-  assert(rd != NULL);
-  assert(rd->type == PDCP_STATS_V0);
-  int64_t now = time_now_us();
+int ifTerminate = false;
+long long count = 0;
 
-  char result[20000];
-  char temp[20000];
+void terminate(int signum){
+  ifTerminate = true;
+}
 
-  printf("PDCP ind_msg latency = %ld \n", now - rd->pdcp_stats.msg.tstamp);
-
+void printJsonPdcp(sm_ag_if_rd_t const* rd){
   uint32_t node_number = rd->pdcp_stats.msg.len;
   pdcp_radio_bearer_stats_t * stats = rd->pdcp_stats.msg.rb;
+  int64_t now = time_now_us();
+  
+  char result[20000];
+  char temp[20000];
 
   strcat(result,"{\"PDCP_bearer\":{");
   sprintf(temp,"\"len\": %u,", node_number );    strcat(result, temp);
@@ -76,9 +77,25 @@ void sm_cb_pdcp(sm_ag_if_rd_t const* rd)
   printf("%s \n\n\n",result);
 }
 
+static
+void sm_cb_pdcp(sm_ag_if_rd_t const* rd)
+{
+  assert(rd != NULL);
+  assert(rd->type == PDCP_STATS_V0);
+  int64_t now = time_now_us();
+
+  printf("PDCP ind_msg latency = %ld \n", now - rd->pdcp_stats.msg.tstamp);
+  printf("count: %ld",count++);
+  //printJsonPdcp(rd);
+
+}
+
 
 int main(int argc, char *argv[])
 {
+
+  signal(SIGINT, terminate);
+
   fr_args_t args = init_fr_args(argc, argv);
   //Init the xApp
   init_xapp_api(&args);
@@ -107,8 +124,9 @@ int main(int argc, char *argv[])
     assert(pdcp_handle[i].success == true);
   }
 
-  sleep(1);
-
+  while(!ifTerminate){
+    sleep(1);
+  }
 
   for(int i = 0; i < nodes.len; ++i){
     // Remove the handle previously returned
@@ -124,5 +142,6 @@ int main(int argc, char *argv[])
     usleep(1000);
 
   printf("Test xApp run SUCCESSFULLY\n");
+
 }
 

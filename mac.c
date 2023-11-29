@@ -19,29 +19,31 @@
  *      contact@openairinterface.org
  */
 
-#include "../../../../../src/xApp/e42_xapp_api.h"
-#include "../../../../../src/util/alg_ds/alg/defer.h"
-#include "../../../../../src/util/time_now_us.h"
+#include "../../../../src/xApp/e42_xapp_api.h"
+#include "../../../../src/util/alg_ds/alg/defer.h"
+#include "../../../../src/util/time_now_us.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+#include <signal.h>
 
-static
-void sm_cb_mac(sm_ag_if_rd_t const* rd)
-{
-  assert(rd != NULL);
-  assert(rd->type == MAC_STATS_V0);
-  int64_t now = time_now_us();
+int ifTerminate = false;
+long long count = 0;
 
-  char result[20000];
-  char temp[20000];
+void terminate_(int signum){
+  ifTerminate = true;
+  printf("terminate!!!");
+}
 
-  printf("MAC ind_msg latency = %ld \n", now - rd->mac_stats.msg.tstamp);
-
+void printJsonMac(sm_ag_if_rd_t const* rd){
   mac_ue_stats_impl_t * stats = rd->mac_stats.msg.ue_stats;
   uint32_t node_number = rd->mac_stats.msg.len_ue_stats;
+  int64_t now = time_now_us();
+  
+  char result[20000];
+  char temp[20000];
 
   strcat(result,"{\"MAC_UE\":{");
   sprintf(temp,"\"len_ue_stats\": %u,", node_number );    strcat(result, temp);
@@ -101,12 +103,27 @@ void sm_cb_mac(sm_ag_if_rd_t const* rd)
   strcat(result,"]}}");
 
   printf("%s \n\n\n",result);
+}
+
+static
+void sm_cb_mac(sm_ag_if_rd_t const* rd)
+{
+  assert(rd != NULL);
+  assert(rd->type == MAC_STATS_V0);
+  int64_t now = time_now_us();
+
+  printf("MAC ind_msg latency = %ld \n", now - rd->mac_stats.msg.tstamp);
+  printf("count: %ld",count++);
+  //printJsonMac(rd);
 
 }
 
 
 int main(int argc, char *argv[])
 {
+
+  signal(SIGINT, terminate_);
+
   fr_args_t args = init_fr_args(argc, argv);
   //Init the xApp
   init_xapp_api(&args);
@@ -134,9 +151,10 @@ int main(int argc, char *argv[])
     mac_handle[i] = report_sm_xapp_api(&nodes.n[i].id, n->ack_rf[0].id, i_0, sm_cb_mac);
     assert(mac_handle[i].success == true);
   }
-
-  sleep(1);
-
+  
+  while(!ifTerminate){
+    sleep(1);  //continously receive the data until the interrupt happen 
+  }
 
   for(int i = 0; i < nodes.len; ++i){
     // Remove the handle previously returned
@@ -152,5 +170,6 @@ int main(int argc, char *argv[])
     usleep(1000);
 
   printf("Test xApp run SUCCESSFULLY\n");
+
 }
 
