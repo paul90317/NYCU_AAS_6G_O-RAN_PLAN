@@ -1,0 +1,59 @@
+From 9dc450cb1035423d1cc6a1c4202a2da2c815adda Mon Sep 17 00:00:00 2001
+From: paul <paul2309825@gmail.com>
+Date: Fri, 29 Mar 2024 11:05:57 +0000
+Subject: [PATCH] Patch for NYCU_AAS_6G_O-RAN_PLAN
+
+---
+ CMakeLists.txt                 | 2 +-
+ examples/xApp/c/CMakeLists.txt | 1 +
+ examples/xApp/c/aas            | 1 +
+ src/xApp/e42_xapp_api.c        | 2 +-
+ 4 files changed, 4 insertions(+), 2 deletions(-)
+ create mode 160000 examples/xApp/c/aas
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 66af0560..cad384fe 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -369,7 +369,7 @@ endif ()
+ # Install Emulator Agent
+ ###
+ if (XAPP_C_INSTALL)
+-  install(TARGETS xapp_mac_rlc_pdcp_moni xapp_slice_moni_ctrl xapp_kpm_moni xapp_gtp_moni xapp_hw DESTINATION ${CMAKE_INSTALL_BINDIR})
++  install(TARGETS xapp_mac_rlc_pdcp_moni xapp_slice_moni_ctrl xapp_kpm_moni xapp_gtp_moni xapp_hw xapp_mac xapp_pdcp xapp_rlc DESTINATION ${CMAKE_INSTALL_BINDIR})
+ endif ()
+ 
+ 
+diff --git a/examples/xApp/c/CMakeLists.txt b/examples/xApp/c/CMakeLists.txt
+index 981391c6..7d55b5e9 100644
+--- a/examples/xApp/c/CMakeLists.txt
++++ b/examples/xApp/c/CMakeLists.txt
+@@ -4,4 +4,5 @@ add_subdirectory(monitor)
+ add_subdirectory(slice)
+ add_subdirectory(tc)
+ add_subdirectory(kpm_rc)
++add_subdirectory(aas)
+ 
+diff --git a/examples/xApp/c/aas b/examples/xApp/c/aas
+new file mode 160000
+index 00000000..35d2c3d0
+--- /dev/null
++++ b/examples/xApp/c/aas
+@@ -0,0 +1 @@
++Subproject commit 35d2c3d095c25f33d0c1d8b31c92dc68b27abc1a
+diff --git a/src/xApp/e42_xapp_api.c b/src/xApp/e42_xapp_api.c
+index 30f86b25..bf4488fc 100644
+--- a/src/xApp/e42_xapp_api.c
++++ b/src/xApp/e42_xapp_api.c
+@@ -69,7 +69,7 @@ void init_xapp_api(fr_args_t const* args)
+   assert(args != NULL);
+ 
+   // Signal handler
+-  signal(SIGINT, sig_handler);
++  // signal(SIGINT, sig_handler);
+ 
+   xapp = init_e42_xapp(args);
+ 
+-- 
+2.34.1
+

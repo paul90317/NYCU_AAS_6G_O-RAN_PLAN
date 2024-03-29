@@ -38,8 +38,8 @@ void terminate_(int signum){
 }
 
 void printJsonMac(sm_ag_if_rd_t const* rd){
-  mac_ue_stats_impl_t * stats = rd->mac_stats.msg.ue_stats;
-  uint32_t node_number = rd->mac_stats.msg.len_ue_stats;
+  mac_ue_stats_impl_t * stats = rd->ind.mac.msg.ue_stats;
+  uint32_t node_number = rd->ind.mac.msg.len_ue_stats;
   int64_t now = time_now_us();
   
   char result[20000];
@@ -47,7 +47,7 @@ void printJsonMac(sm_ag_if_rd_t const* rd){
 
   strcat(result,"{\"MAC_UE\":{");
   sprintf(temp,"\"len_ue_stats\": %u,", node_number );    strcat(result, temp);
-  sprintf(temp,"\"tstamp\": %ld,", now - rd->mac_stats.msg.tstamp );    strcat(result, temp);
+  sprintf(temp,"\"tstamp\": %ld,", now - rd->ind.mac.msg.tstamp );    strcat(result, temp);
   strcat(result,"\"ue_stats\": [");
 
   for(uint32_t i = 0; i < node_number; i++){
@@ -112,7 +112,7 @@ void sm_cb_mac(sm_ag_if_rd_t const* rd)
   assert(rd->type == MAC_STATS_V0);
   int64_t now = time_now_us();
 
-  printf("MAC ind_msg latency = %ld \n", now - rd->mac_stats.msg.tstamp);
+  printf("MAC ind_msg latency = %ld \n", now - rd->ind.mac.msg.tstamp);
   printf("count: %ld",count++);
   //printJsonMac(rd);
 
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
   printf("Connected E2 nodes = %d\n", nodes.len);
 
   // MAC indication
-  inter_xapp_e i_0 = ms_10;
+  const char* i_0 = "10_ms";
   sm_ans_xapp_t* mac_handle = NULL;
 
   if(nodes.len > 0){
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
     for (size_t j = 0; j < n->len_rf; j++)
       printf("Registered node %d ran func id = %d \n ", i, n->ack_rf[j].id);
 
-    mac_handle[i] = report_sm_xapp_api(&nodes.n[i].id, n->ack_rf[0].id, i_0, sm_cb_mac);
+    mac_handle[i] = report_sm_xapp_api(&nodes.n[i].id, n->ack_rf[0].id, (void *)i_0, sm_cb_mac);
     assert(mac_handle[i].success == true);
   }
   

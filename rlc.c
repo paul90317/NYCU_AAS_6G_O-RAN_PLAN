@@ -37,8 +37,8 @@ void terminate(int signum){
 }
 
 void printJsonRlc(sm_ag_if_rd_t const* rd){
-  rlc_radio_bearer_stats_t * stats = rd->rlc_stats.msg.rb;
-  uint32_t node_number = rd->rlc_stats.msg.len;
+  rlc_radio_bearer_stats_t * stats = rd->ind.rlc.msg.rb;
+  uint32_t node_number = rd->ind.rlc.msg.len;
   int64_t now = time_now_us();
   
   char result[20000];
@@ -46,7 +46,7 @@ void printJsonRlc(sm_ag_if_rd_t const* rd){
 
   strcat(result,"{\"RLC_bearer\":{");
   sprintf(temp,"\"len\": %u,", node_number );    strcat(result, temp);
-  sprintf(temp,"\"tstamp\": %ld,", now - rd->rlc_stats.msg.tstamp );    strcat(result, temp);
+  sprintf(temp,"\"tstamp\": %ld,", now - rd->ind.rlc.msg.tstamp );    strcat(result, temp);
   strcat(result,"\"rb\": [");
 
   for(uint32_t i = 0; i < node_number; i++){
@@ -99,7 +99,7 @@ void sm_cb_rlc(sm_ag_if_rd_t const* rd)
   assert(rd->type == RLC_STATS_V0);
   int64_t now = time_now_us();
 
-  printf("RLC ind_msg latency = %ld \n", now - rd->rlc_stats.msg.tstamp);
+  printf("RLC ind_msg latency = %ld \n", now - rd->ind.rlc.msg.tstamp);
   printf("count: %ld",count++);
   //printJsonRlc(rd);
 
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 
 
   // RLC indication
-  inter_xapp_e i_1 = ms_10;
+  const char* i_1 = "10_ms";
   sm_ans_xapp_t* rlc_handle = NULL;
 
   if(nodes.len > 0){
@@ -134,8 +134,8 @@ int main(int argc, char *argv[])
     e2_node_connected_t* n = &nodes.n[i];
     for (size_t j = 0; j < n->len_rf; j++)
       printf("Registered node %d ran func id = %d \n ", i, n->ack_rf[j].id);
-
-    rlc_handle[i] = report_sm_xapp_api(&nodes.n[i].id, n->ack_rf[1].id, i_1, sm_cb_rlc);
+    
+    rlc_handle[i] = report_sm_xapp_api(&nodes.n[i].id, n->ack_rf[1].id, (void *)i_1, sm_cb_rlc);
     assert(rlc_handle[i].success == true);
   }
   

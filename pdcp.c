@@ -37,8 +37,8 @@ void terminate(int signum){
 }
 
 void printJsonPdcp(sm_ag_if_rd_t const* rd){
-  uint32_t node_number = rd->pdcp_stats.msg.len;
-  pdcp_radio_bearer_stats_t * stats = rd->pdcp_stats.msg.rb;
+  uint32_t node_number = rd->ind.pdcp.msg.len;
+  pdcp_radio_bearer_stats_t * stats = rd->ind.pdcp.msg.rb;
   int64_t now = time_now_us();
   
   char result[20000];
@@ -46,7 +46,7 @@ void printJsonPdcp(sm_ag_if_rd_t const* rd){
 
   strcat(result,"{\"PDCP_bearer\":{");
   sprintf(temp,"\"len\": %u,", node_number );    strcat(result, temp);
-  sprintf(temp,"\"tstamp\": %ld,", now - rd->pdcp_stats.msg.tstamp );    strcat(result, temp);
+  sprintf(temp,"\"tstamp\": %ld,", now - rd->ind.pdcp.msg.tstamp );    strcat(result, temp);
   strcat(result,"\"rb\": [");
 
   for(uint32_t i = 0; i < node_number; i++){
@@ -84,7 +84,7 @@ void sm_cb_pdcp(sm_ag_if_rd_t const* rd)
   assert(rd->type == PDCP_STATS_V0);
   int64_t now = time_now_us();
 
-  printf("PDCP ind_msg latency = %ld \n", now - rd->pdcp_stats.msg.tstamp);
+  printf("PDCP ind_msg latency = %ld \n", now - rd->ind.pdcp.msg.tstamp);
   printf("count: %ld",count++);
   //printJsonPdcp(rd);
 
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
   printf("Connected E2 nodes = %d\n", nodes.len);
 
   // PDCP indication
-  inter_xapp_e i_2 = ms_10;
+  const char* i_2 = "10_ms";
   sm_ans_xapp_t* pdcp_handle = NULL;
 
   if(nodes.len > 0){
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
     for (size_t j = 0; j < n->len_rf; j++)
       printf("Registered node %d ran func id = %d \n ", i, n->ack_rf[j].id);
 
-    pdcp_handle[i] = report_sm_xapp_api(&nodes.n[i].id, n->ack_rf[2].id, i_2, sm_cb_pdcp);
+    pdcp_handle[i] = report_sm_xapp_api(&nodes.n[i].id, n->ack_rf[2].id, (void *)i_2, sm_cb_pdcp);
     assert(pdcp_handle[i].success == true);
   }
 
